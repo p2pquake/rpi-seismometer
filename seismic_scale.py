@@ -34,10 +34,15 @@ a_frame  = int(target_fps * 0.3)
 # 地震データ -----
 adc_values = [[1] * target_fps, [1] * target_fps, [1] * target_fps]
 rc_values   = [0, 0, 0]
-a_values = [1] * a_frame
+a_values = [0] * target_fps * 5
+
+a_ring_index = 0
 
 # リアルタイム震度計算 -----
 while True:
+    # リングバッファ位置計算
+    a_ring_index = (a_ring_index + 1) % (target_fps * 5)
+
     # 3軸サンプリング
     for i in range(3):
         val = ReadChannel(i)
@@ -54,13 +59,12 @@ while True:
     # 3軸合成加速度算出
     composite_gal = math.sqrt(axis_gals[0]**2 + axis_gals[1]**2 + axis_gals[2]**2)
 
-    # 0.3秒空間に放り込む
-    a_values.append(composite_gal)
-    a_values.pop(0)
+    # 加速度リングバッファに格納
+    a_values[a_ring_index] = composite_gal
 
-    # 0.3秒間の最低合成加速度から震度を算出
+    # 0.3秒以上継続した合成加速度から震度を算出
     seismic_scale = 0
-    min_a = min(a_values)
+    min_a = sorted(a_values)[-a_frame]
     if min_a > 0:
       seismic_scale = 2 * math.log10(min_a) + 0.94
 
