@@ -36,24 +36,25 @@ adc_values = [[1] * target_fps, [1] * target_fps, [1] * target_fps]
 rc_values   = [0, 0, 0]
 a_values = [0] * target_fps * 5
 
+adc_ring_index = 0
 a_ring_index = 0
 
 # リアルタイム震度計算 -----
 while True:
     # リングバッファ位置計算
+    adc_ring_index = (adc_ring_index + 1) % target_fps
     a_ring_index = (a_ring_index + 1) % (target_fps * 5)
 
     # 3軸サンプリング
     for i in range(3):
         val = ReadChannel(i)
-        adc_values[i].append(val)
-        adc_values[i].pop(0)
+        adc_values[i][adc_ring_index] = val
    
     # フィルタ適用及び加速度変換
     axis_gals = [0, 0, 0]
     for i in range(3):
         offset = sum(adc_values[i])/len(adc_values[i])
-        rc_values[i] = rc_values[i]*0.94+adc_values[i][target_fps-1]*0.06
+        rc_values[i] = rc_values[i]*0.94+adc_values[i][adc_ring_index]*0.06
         axis_gals[i] = (rc_values[i] - offset) * ad2gal
 
     # 3軸合成加速度算出
